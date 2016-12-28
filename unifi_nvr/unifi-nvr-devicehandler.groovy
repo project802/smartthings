@@ -14,11 +14,7 @@
  *
  *  -----------------------------------------------------------------------------------------------------------------
  * 
- *  This device handler is required to be paired with the accompanying SmartApp.  
- *  
- *  As the API from Ubiquiti is not officially supported, this integration could break (however unlikely).
- * 
- *  https://github.com/project802/smartthings
+ *  For more information, see https://github.com/project802/smartthings/unifi_nvr
  */
 metadata {
     definition (name: "UniFi NVR Camera", namespace: "project802", author: "Chris Vincent") {
@@ -70,7 +66,7 @@ def updated()
     state.motion                 = "inactive"
     state.pollInterval           = settings.pollInterval ? settings.pollInterval : 5
     
-    log.debug "state: ${state}"
+    log.info "${device.displayName} updated with state: ${state}"
     
     refresh()
     
@@ -111,7 +107,7 @@ def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
     def data = hubResponse.json.data[0]
     
     // Only do motion detection if the camera is configured for it
-    if( data.recordingSettings.motionRecordEnabled )
+    if( data.recordingSettings?.motionRecordEnabled )
     {
     	// Motion is based on a new recording being present
     	if( state.lastRecordingStartTime && (state.lastRecordingStartTime != data.lastRecordingStartTime) )
@@ -144,8 +140,11 @@ def _sendMotion( motion )
     
     def description = (motion == "active" ? " detected motion" : " motion has stopped")
     
-    def map = [ name: "motion", value: motion, descriptionText: device.displayName + description ]
-    //log.debug "_sendMotion: ${map}"
+    def map = [ 
+                name: "motion",
+                value: motion, 
+                descriptionText: device.displayName + description
+              ]
     
     sendEvent( map )
 }
