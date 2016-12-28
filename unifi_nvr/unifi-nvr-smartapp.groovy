@@ -14,21 +14,7 @@
  *
  *  -----------------------------------------------------------------------------------------------------------------
  * 
- *  This SmartApp connects to the NVR software and creates a child device for each camera discovered.
- *  As the API from Ubiquiti is not officially supported, this integration could break (however unlikely).
- *  It requires the accompanying device handler for the cameras.
- *  
- *  To use the app, you must have an active API key from a user with proper permissions.  In the NVR software
- *  click on "Users", select a user (probably your super administrator) then select "API Access".  Make sure
- *  that "Allow API Usage" is enabled then copy the API key into the app settings.
- *
- *  Your SmartThings hub running this SmartApp must be on the same subnet as the NVR software.  This is a 
- *  restriction of the hub that it will not perform HTTP GET commands outside the subnet.  The hub also
- *  does not currently support HTTPS interactions so ensure that the network is trusted.
- *
- *  The NVR will use port 7080 for HTTP transactions out of the box.
- *
- *  https://github.com/project802/smartthings
+ *  For more information, see https://github.com/project802/smartthings/unifi_nvr
  */
 definition(
     name: "UniFi NVR SmartApp",
@@ -51,7 +37,7 @@ preferences {
  * installed() - Called by ST platform
  */
 def installed() {
-    log.debug "Installed with settings: ${settings}"
+    log.info "UniFi NVR: installed with settings: ${settings}"
 
     initialize()
 }
@@ -60,20 +46,28 @@ def installed() {
  * updated() - Called by ST platform
  */
 def updated() {
-    log.debug "Updated with settings: ${settings}"
+    log.info "UniFi NVR: updated with settings: ${settings}"
     
     initialize()
 }
 
 /**
- * initialize() - Clear state and poll the bootstrap API and the result is handled by nvr_bootstrapPollCallback
+ * initialize() - Called by the ST platform
  */
 def initialize() {
-    log.debug "initialize()"
+    nvr_initialize()
+}
+
+/**
+ * nvr_initialize() - Clear state and poll the bootstrap API and the result is handled by nvr_bootstrapPollCallback
+ */
+def nvr_initialize()
+{
+    state.nvrName = "Unknown"
     
     state.nvrTarget = "${settings.nvrAddress}:${settings.nvrPort}"
     state.apiKey = "${settings.apiKey}"
-    log.debug "NVR API is located at ${state.nvrTarget}"
+    log.info "nvr_initialize: NVR API is located at ${state.nvrTarget}"
 
     sendHubCommand( new physicalgraph.device.HubAction("""GET /api/2.0/bootstrap?apiKey=${settings.apiKey} HTTP/1.1\r\n Accept: application/json\r\nHOST: ${state.nvrTarget}\r\n\r\n""", physicalgraph.device.Protocol.LAN, "${state.nvrTarget}", [callback: nvr_bootstrapPollCallback]))
 }
@@ -83,29 +77,57 @@ def initialize() {
  */
 def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
 {
-    log.debug "bootstrapResponseHandler()"
-	
-    // This could use some error checking
-    hubResponse.json.data.cameras.each { camera ->
-    	def appChildDevice
-        
-    	def dni = "${camera.mac[0]}"
-        log.debug "dni: ${dni}"
+	def data = hubResponse.json?.data
+    
+    if( !data || !data.isLoggedIn )
+    {
+    	log.error "nvr_bootstrapPollCallback: unable to get data from NVR!"
+        return
+    }
+    
+    if( data.isLoggedIn[0] != true )
+    {
+    	log.error "nvr_bootstrapPollCallback: unable to log in!  Please check API key."
+        return
+    }
+    
+    state.nvrName = data.nvrName[0]
+    log.info "nvr_bootstrapPollCallback: response from ${state.nvrName}"
+    
+    if( data.cameras?.size < 1 )
+    {
+    	log.warn "nvr_bootstrapPollCallback: no cameras found!"
+    	return
+    }
+    
+    log.info "nvr_bootstrapPollCallback: found ${data.cameras.size} camera(s)"
+    
+    data.cameras.each { camera ->
+        def dni = "${camera.mac[0]}"
 
-        def child = getChildDevice( dni )
-        
-        if( !child )
+        if( getChildDevice(dni) )
         {
-        	log.debug "adding child: ${camera.name[0]}, ${camera.model[0]}, ${camera.uuid[0]}, ${camera._id[0]}"
-        	addChildDevice( "project802", "UniFi NVR Camera", dni, location.hubs[0].id, [
-            	"label" : camera.name[0] + " (" + camera.model[0] + ")",
-            	"data": [
-                    "uuid" : camera.uuid[0],
-                    "name" : camera.name[0],
-                    "id" : camera._id[0]
-                    ]
-                ])
-                    
+            log.info "nvr_bootstrapPollCallback: already have child ${dni}"
+        }
+        else
+        {
+            log.info "nvr_bootstrapPollCallback: adding child ${dni}, ${camera.name[0]}, ${camera.model[0]}, ${camera.uuid[0]}, ${camera._id[0]}"
+            try
+            {
+                addChildDevice( "project802", "UniFi NVR Camera", dni, location.hubs[0].id, [
+                    "label" : camera.name[0] + " (" + camera.model[0] + ")",
+                    "data": [
+                        "uuid" : camera.uuid[0],
+                        "name" : camera.name[0],
+                        "id" : camera._id[0]
+                        ]
+                    ])
+             }
+             catch( exception )
+             {
+
+                 log.error "nvr_bootstrapPollCallback: adding child ${dni} failed, continuing..."
+             }
         }
     }
 }
@@ -117,7 +139,6 @@ def _getApiKey()
 {
     return state.apiKey
 }
-
 /**
  * _getNvrTarget() - Here for the purpose of children
  */
