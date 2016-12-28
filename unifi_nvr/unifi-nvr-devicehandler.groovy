@@ -21,28 +21,28 @@
  *  https://github.com/project802/smartthings
  */
 metadata {
-	definition (name: "UniFi NVR Camera", namespace: "project802", author: "Chris Vincent") {
-    	capability "Motion Sensor"
+    definition (name: "UniFi NVR Camera", namespace: "project802", author: "Chris Vincent") {
+        capability "Motion Sensor"
         capability "Sensor"
         capability "Refresh"
-	}
-
-	simulator {
-		
-	}
-
-	tiles {
-		standardTile("motion", "device.motion", width: 1, height: 1) {
-			state("active", label:'motion', icon:"st.motion.motion.active", backgroundColor:"#53a7c0")
-			state("inactive", label:'no motion', icon:"st.motion.motion.inactive", backgroundColor:"#ffffff")
-		}
+    }
+    
+    simulator {
         
-		main "motion"
+    }
+    
+    tiles {
+        standardTile("motion", "device.motion", width: 1, height: 1) {
+            state("active", label:'motion', icon:"st.motion.motion.active", backgroundColor:"#53a7c0")
+            state("inactive", label:'no motion', icon:"st.motion.motion.inactive", backgroundColor:"#ffffff")
+        }
+        
+        main "motion"
         details "motion"
-	}
+    }
     
     preferences {
-    	input "pollInterval", "number", title: "Poll Interval", description: "Polling interval in seconds for motion detection", defaultValue: 5
+        input "pollInterval", "number", title: "Poll Interval", description: "Polling interval in seconds for motion detection", defaultValue: 5
     }
 }
 
@@ -63,12 +63,12 @@ def updated()
     // seems to keep around even if the code changes during dev
     unschedule()
     
-    state.uuid 						= getDataValue( "uuid" )
-    state.name 						= getDataValue( "name" )
-    state.id 						= getDataValue( "id" )
-    state.lastRecordingStartTime 	= null
-    state.motion 					= "inactive"
-    state.pollInterval 				= settings.pollInterval ? settings.pollInterval : 5
+    state.uuid                   = getDataValue( "uuid" )
+    state.name                   = getDataValue( "name" )
+    state.id                     = getDataValue( "id" )
+    state.lastRecordingStartTime = null
+    state.motion                 = "inactive"
+    state.pollInterval           = settings.pollInterval ? settings.pollInterval : 5
     
     log.debug "state: ${state}"
     
@@ -82,7 +82,7 @@ def updated()
  */
 def refresh()
 {
-	_sendMotion( state.motion )
+    _sendMotion( state.motion )
 }
 
 /**
@@ -93,13 +93,13 @@ def refresh()
  */
 def nvr_cameraPoll() 
 {
-	def key = parent._getApiKey()
+    def key = parent._getApiKey()
     def target = parent._getNvrTarget()
     
-	sendHubCommand( new physicalgraph.device.HubAction("""GET /api/2.0/camera/${state.id}?apiKey=${key} HTTP/1.1\r\n Accept: application/json\r\nHOST: ${target}\r\n\r\n""", physicalgraph.device.Protocol.LAN, "${target}", [callback: nvr_cameraPollCallback]))
+    sendHubCommand( new physicalgraph.device.HubAction("""GET /api/2.0/camera/${state.id}?apiKey=${key} HTTP/1.1\r\n Accept: application/json\r\nHOST: ${target}\r\n\r\n""", physicalgraph.device.Protocol.LAN, "${target}", [callback: nvr_cameraPollCallback]))
     
     // Set overwrite to true instead of using unschedule(), which is expensive, to ensure no dups
-	runIn( state.pollInterval, nvr_cameraPoll, [overwrite: true] )
+    runIn( state.pollInterval, nvr_cameraPoll, [overwrite: true] )
 }
 
 /**
@@ -124,7 +124,7 @@ def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
     
     if( motion != state.motion )
     {
-   		_sendMotion( motion )
+        _sendMotion( motion )
     }
     
     state.motion = motion
@@ -137,7 +137,7 @@ def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
  */
 def _sendMotion( motion )
 {
-	if( (motion != "active") && (motion != "inactive") )
+    if( (motion != "active") && (motion != "inactive") )
     {
     	return
     }

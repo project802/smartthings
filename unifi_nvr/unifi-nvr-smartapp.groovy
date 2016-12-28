@@ -42,27 +42,27 @@ definition(
 
 
 preferences {
-	input name: "nvrAddress", type: "text", title: "NVR Address", description: "NVR IP address", required: true, displayDuringSetup: true, defaultValue: "10.0.0.205"
+    input name: "nvrAddress", type: "text", title: "NVR Address", description: "NVR IP address", required: true, displayDuringSetup: true, defaultValue: "10.0.0.205"
     input name: "nvrPort", type: "number", title: "NVR Port", description: "NVR HTTP port", required: true, displayDuringSetup: true, defaultValue: 7080
-	input name: "apiKey", type: "text", title: "API Key", description: "API key", required: true, displayDuringSetup: true, defaultValue: "pJe9AtPTFCrtBCzd"
+    input name: "apiKey", type: "text", title: "API Key", description: "API key", required: true, displayDuringSetup: true, defaultValue: "pJe9AtPTFCrtBCzd"
 }
 
 /**
  * installed() - Called by ST platform
  */
 def installed() {
-	log.debug "Installed with settings: ${settings}"
+    log.debug "Installed with settings: ${settings}"
 
-	initialize()
+    initialize()
 }
 
 /**
  * updated() - Called by ST platform
  */
 def updated() {
-	log.debug "Updated with settings: ${settings}"
+    log.debug "Updated with settings: ${settings}"
     
-	initialize()
+    initialize()
 }
 
 /**
@@ -71,7 +71,7 @@ def updated() {
 def initialize() {
     log.debug "initialize()"
     
-	state.nvrTarget = "${settings.nvrAddress}:${settings.nvrPort}"
+    state.nvrTarget = "${settings.nvrAddress}:${settings.nvrPort}"
     state.apiKey = "${settings.apiKey}"
     log.debug "NVR API is located at ${state.nvrTarget}"
 
@@ -83,7 +83,7 @@ def initialize() {
  */
 def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
 {
-	log.debug "bootstrapResponseHandler()"
+    log.debug "bootstrapResponseHandler()"
 	
     // This could use some error checking
     hubResponse.json.data.cameras.each { camera ->
@@ -92,7 +92,7 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
     	def dni = "${camera.mac[0]}"
         log.debug "dni: ${dni}"
 
-		def child = getChildDevice( dni )
+        def child = getChildDevice( dni )
         
         if( !child )
         {
@@ -100,10 +100,10 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
         	addChildDevice( "project802", "UniFi NVR Camera", dni, location.hubs[0].id, [
             	"label" : camera.name[0] + " (" + camera.model[0] + ")",
             	"data": [
-                	"uuid" : camera.uuid[0],
+                    "uuid" : camera.uuid[0],
                     "name" : camera.name[0],
                     "id" : camera._id[0]
-                   	]
+                    ]
                 ])
                     
         }
@@ -115,7 +115,7 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
  */
 def _getApiKey()
 {
-	return state.apiKey
+    return state.apiKey
 }
 
 /**
@@ -123,5 +123,5 @@ def _getApiKey()
  */
 def _getNvrTarget()
 {
-	return state.nvrTarget
+    return state.nvrTarget
 }
