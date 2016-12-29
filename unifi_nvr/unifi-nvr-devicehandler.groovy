@@ -106,6 +106,8 @@ def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
     def motion = "inactive"
     def data = hubResponse.json.data[0]
     
+    //log.debug "nvr_cameraPollCallback: ${device.displayName}"
+    
     // Only do motion detection if the camera is configured for it
     if( data.recordingSettings?.motionRecordEnabled )
     {
@@ -116,6 +118,10 @@ def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
         }
         
         state.lastRecordingStartTime = data.lastRecordingStartTime;
+    }
+    else
+    {
+        //log.warn "nvr_cameraPollCallback: ${device.displayName} motion not enabled"
     }
     
     if( motion != state.motion )
