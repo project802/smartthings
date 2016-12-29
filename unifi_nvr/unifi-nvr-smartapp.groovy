@@ -38,8 +38,6 @@ preferences {
  */
 def installed() {
     log.info "UniFi NVR: installed with settings: ${settings}"
-
-    initialize()
 }
 
 /**
@@ -48,13 +46,6 @@ def installed() {
 def updated() {
     log.info "UniFi NVR: updated with settings: ${settings}"
     
-    initialize()
-}
-
-/**
- * initialize() - Called by the ST platform
- */
-def initialize() {
     nvr_initialize()
 }
 
@@ -77,7 +68,7 @@ def nvr_initialize()
  */
 def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
 {
-	def data = hubResponse.json?.data
+    def data = hubResponse.json?.data
     
     if( !data || !data.isLoggedIn )
     {
@@ -93,17 +84,17 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
     
     state.nvrName = data.nvrName[0]
     log.info "nvr_bootstrapPollCallback: response from ${state.nvrName}"
-    
-    if( data.cameras?.size < 1 )
+
+    if( data.cameras[0].size < 1 )
     {
     	log.warn "nvr_bootstrapPollCallback: no cameras found!"
     	return
     }
     
-    log.info "nvr_bootstrapPollCallback: found ${data.cameras.size} camera(s)"
+    log.info "nvr_bootstrapPollCallback: found ${data.cameras[0].size} camera(s)"
     
-    data.cameras.each { camera ->
-        def dni = "${camera.mac[0]}"
+    data.cameras[0].each { camera ->
+        def dni = "${camera.mac}"
 
         if( getChildDevice(dni) )
         {
@@ -111,23 +102,24 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
         }
         else
         {
-            log.info "nvr_bootstrapPollCallback: adding child ${dni}, ${camera.name[0]}, ${camera.model[0]}, ${camera.uuid[0]}, ${camera._id[0]}"
+            def metaData = [   "label" : camera.name + " (" + camera.model + ")",
+                               "data": [
+                                   "uuid" : camera.uuid,
+                                   "name" : camera.name,
+                                   "id" : camera._id
+                               ]
+                           ]
+                           
+            log.info "nvr_bootstrapPollCallback: adding child ${dni} ${metaData}"
+            
             try
             {
-                addChildDevice( "project802", "UniFi NVR Camera", dni, location.hubs[0].id, [
-                    "label" : camera.name[0] + " (" + camera.model[0] + ")",
-                    "data": [
-                        "uuid" : camera.uuid[0],
-                        "name" : camera.name[0],
-                        "id" : camera._id[0]
-                        ]
-                    ])
-             }
-             catch( exception )
-             {
-
-                 log.error "nvr_bootstrapPollCallback: adding child ${dni} failed, continuing..."
-             }
+                addChildDevice( "project802", "UniFi NVR Camera", dni, location.hubs[0].id, metaData )
+            }
+            catch( exception )
+            {
+                log.error "nvr_bootstrapPollCallback: adding child ${dni} failed (child probably already exists), continuing..."
+            }
         }
     }
 }
