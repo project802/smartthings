@@ -95,10 +95,12 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
     
     data.cameras[0].each { camera ->
         def dni = "${camera.mac}"
-
-        if( getChildDevice(dni) )
+        def child = getChildDevice( dni )
+        
+        if( child )
         {
             log.info "nvr_bootstrapPollCallback: already have child ${dni}"
+            child.updated()
         }
         else
         {
