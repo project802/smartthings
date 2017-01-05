@@ -10,5 +10,6 @@ Your SmartThings hub running this SmartApp must be on the same subnet as the NVR
 I have tested this against NVR v3.5.2 running on a hardware NVR and a UVC G3 Dome.
 
 ---
-Current capabilities of the device handler:
-  * Motion sensor (if the camera is set to record on motion)
+Current capabilities of the camera device handler:
+  * Implements motion sensor (if the camera is set to record on motion)
+  * Displays connection state in details screen 
