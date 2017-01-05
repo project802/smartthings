@@ -11,8 +11,14 @@ Current capabilities of the camera device handler:
 2.  Publish the SmartApp and device handler to yourself (http://docs.smartthings.com/en/latest/publishing/index.html)
 3.  To use the app, you must have an active API key from a user with proper permissions.  
   * In the NVR software click on "Users", select a user (probably your super administrator) then select "API Access".
-  * Make sure that "Allow API Usage" is enabled then copy the API key into the app settings.  
+  * Make sure that "Allow API Usage" is enabled.
+  * Generate an API key (if there isn't one already) and note it down.
 4.  Install the UniFi NVR SmartApp from your mobile device by going to "Automations", "Add a SmartApp" and finally "My Apps", where it should be visible.
+  * Enter your NVR IP address.
+  * Keep port to 7080 (this is the default HTTP port.  Do not use 7443.).
+  * Enter the API key from step 3.
+  * Tap "Done"
+5.  Camera devices should start to appear in your device list ("My Home" -> "Things")
 
 ## Application Notes
 The NVR software will use port 7080 for HTTP transactions out of the box.  Please ensure that your hub and NVR are on a trusted network.  Do not use port 7443 as SmartThings does not currently support HTTPS for hub actions on the LAN.
