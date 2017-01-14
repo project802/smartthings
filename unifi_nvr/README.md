@@ -3,6 +3,7 @@ This is a SmartApp and device handler that will discover cameras from your NVR a
 
 Current capabilities of the camera device handler:
   * Implements motion sensor (if the camera is set to record on motion)
+  * Implements image capture for single image display within details screen
   * Displays connection state in details screen 
   
   
