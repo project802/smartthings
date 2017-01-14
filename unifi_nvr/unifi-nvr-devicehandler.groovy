@@ -232,10 +232,10 @@ private _sendConnectionStatus( connectionStatus )
  */
 private _parseDescriptionAsMap( description )
 {
-	description.split(",").inject([:]) { map, param ->
-		def nameAndValue = param.split(":")
-		map += [(nameAndValue[0].trim()):nameAndValue[1].trim()]
-	}
+    description.split(",").inject([:]) { map, param ->
+        def nameAndValue = param.split(":")
+        map += [(nameAndValue[0].trim()):nameAndValue[1].trim()]
+    }
 }
 
 /**
