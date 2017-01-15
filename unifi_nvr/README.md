@@ -30,3 +30,6 @@ Your SmartThings hub running this SmartApp must be on the same subnet as the NVR
 
 ## Compatibility
 I have tested this against NVR v3.5.2 running on a hardware NVR and a UVC G3 Dome.
+
+## Known Issues
+For a list of known issues, please see the [issues page](https://github.com/project802/smartthings/issues "GitHub issues page")
