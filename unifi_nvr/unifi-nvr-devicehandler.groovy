@@ -60,7 +60,9 @@ metadata {
 }
 
 /**
- * installed() - Called by ST platform
+ * installed()
+ *
+ * Called by ST platform.
  */
 def installed()
 {
@@ -68,7 +70,9 @@ def installed()
 }
 
 /**
- * updated() - Called by ST platform
+ * updated()
+ *
+ * Called by ST platform.
  */
 def updated()
 {
@@ -92,7 +96,10 @@ def updated()
 }
 
 /**
- * refresh() - Called by ST platform, part of "Refresh" capability
+ * refresh()
+ * 
+ * Called by ST platform, part of "Refresh" capability.  Usually only called when the user explicitly
+ * refreshes the device details pane.
  */
 def refresh()
 {
@@ -101,7 +108,9 @@ def refresh()
 }
 
 /**
- * take() - Called by ST platform, part of "Image Capture" capability
+ * take()
+ *
+ * Called by ST platform, part of "Image Capture" capability.
  */
 def take()
 {
@@ -112,7 +121,9 @@ def take()
 }
 
 /**
- * nvr_cameraTakeCallback() - Callback from the take() HubAction, results are in S3
+ * nvr_cameraTakeCallback()
+ *
+ * Callback from the take() HubAction, results are in S3.
  */
 def nvr_cameraTakeCallback( physicalgraph.device.HubResponse hubResponse )
 {
@@ -141,7 +152,9 @@ def nvr_cameraPoll()
 }
 
 /**
- * nvr_cameraPollCallback() - Callback from HubAction with result from GET
+ * nvr_cameraPollCallback()
+ *
+ * Callback from HubAction with result from GET.
  */
 def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
 {
@@ -172,9 +185,11 @@ def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
         //log.warn "nvr_cameraPollCallback: ${device.displayName} camera disconnected or motion not enabled"
     }
     
-    // fall-through takes care of case if camera motion was active but became disconnected before becoming inactive
+    // Fall-through takes care of case if camera motion was active but became disconnected before becoming inactive
     if( motion != state.motion )
     {
+        // Send motion before doing the take to prioritize the reaction time to motion.  It isn't clear what
+        // the ST platform does for scheduling or blocking in either the sendEvent or sendHubCommand calls.
         state.motion = motion
         _sendMotion( motion )
         
@@ -186,7 +201,9 @@ def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
 }
 
 /**
- * _sendMotion() - Sends a motion event to the ST platform
+ * _sendMotion()
+ *
+ * Sends a motion event to the ST platform.
  *
  * @arg motion Either "active" or "inactive"
  */
@@ -211,7 +228,9 @@ private _sendMotion( motion )
 }
 
 /**
- * _sendConnectionStatus() - Sends a connection status event to the ST platform
+ * _sendConnectionStatus()
+ *
+ * Sends a connection status event to the ST platform.
  *
  * @arg motion Either "CONNECTED" or "DISCONNECTED"
  */
@@ -234,7 +253,9 @@ private _sendConnectionStatus( connectionStatus )
 }
 
 /**
- * _parseDescriptionAsMap() - Converts a string of "key:value" separated by commas into a Map
+ * _parseDescriptionAsMap()
+ *
+ * Converts a string of "key:value" separated by commas into a Map.
  */
 private _parseDescriptionAsMap( description )
 {
@@ -245,11 +266,16 @@ private _parseDescriptionAsMap( description )
 }
 
 /**
- * _putImageInS3() - takes a description map (from a HubResponse) of the data that is in the ST cloud and pops it into S3 storage
+ * _putImageInS3()
+ *
+ * Takes a description map (from a HubResponse) of the data that is in the ST cloud and pops it into S3 storage.
+ * 
+ * The functions getS3Object and storeImage are not documented anywhere that I can find.
  */
 private _putImageInS3( map )
 {
     def s3ObjectContent
+    
     try
     {
         def imageBytes = getS3Object( map.bucket, map.key + ".jpg" )
@@ -260,14 +286,14 @@ private _putImageInS3( map )
             storeImage( _generatePictureName(), bytes )
         }
     }
-    catch(Exception e)
+    catch( Exception e )
     {
         log.error( e )
     }
     finally
     {
-        //Explicitly close the stream
-        if (s3ObjectContent)
+        // Explicitly close the stream
+        if( s3ObjectContent )
         {
             s3ObjectContent.close()
         }
@@ -275,7 +301,9 @@ private _putImageInS3( map )
 }
 
 /**
- * _generatePictureName() - builds a unique picture name for storing in S3
+ * _generatePictureName()
+ *
+ * Builds a unique picture name for storing in S3.
  */
 private _generatePictureName()
 {
