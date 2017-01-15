@@ -55,6 +55,7 @@ metadata {
     
     preferences {
         input "pollInterval", "number", title: "Poll Interval", description: "Polling interval in seconds for motion detection", defaultValue: 5
+        input "snapOnMotion", "bool", title: "Snapshot on motion", description: "If enabled, take a snapshot when the camera detects motion", defaultValue: false
     }
 }
 
@@ -176,6 +177,11 @@ def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
     {
         state.motion = motion
         _sendMotion( motion )
+        
+        if( snapOnMotion && (motion == "active") )
+        {
+            take()
+        }
     }
 }
 
