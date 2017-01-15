@@ -128,7 +128,7 @@ def nvr_cameraTakeCallback( physicalgraph.device.HubResponse hubResponse )
  * Once called, starts cyclic call to itself periodically.  Main loop of the device handler to make API
  * to the NVR software to see if motion has changed.  API call result is handled by nvr_cameraPollCallback().
  */
-private nvr_cameraPoll() 
+def nvr_cameraPoll() 
 {
     def key = parent._getApiKey()
     def target = parent._getNvrTarget()
