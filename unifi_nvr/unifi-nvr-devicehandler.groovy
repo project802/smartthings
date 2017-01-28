@@ -131,7 +131,17 @@ def nvr_cameraTakeCallback( physicalgraph.device.HubResponse hubResponse )
     
     def descriptionMap = _parseDescriptionAsMap( hubResponse.description )
     
-    _putImageInS3( descriptionMap )
+    if( descriptionMap.key )
+    {
+        try
+        {
+            storeTemporaryImage( descriptionMap.key, _generatePictureName() )
+        }
+        catch( Exception e )
+        {
+            log.error e
+        }
+    }
 }
 
 /**
@@ -265,40 +275,6 @@ private _parseDescriptionAsMap( description )
     }
 }
 
-/**
- * _putImageInS3()
- *
- * Takes a description map (from a HubResponse) of the data that is in the ST cloud and pops it into S3 storage.
- * 
- * The functions getS3Object and storeImage are not documented anywhere that I can find.
- */
-private _putImageInS3( map )
-{
-    def s3ObjectContent
-    
-    try
-    {
-        def imageBytes = getS3Object( map.bucket, map.key + ".jpg" )
-        if( imageBytes )
-        {
-            s3ObjectContent = imageBytes.getObjectContent()
-            def bytes = new ByteArrayInputStream( s3ObjectContent.bytes )
-            storeImage( _generatePictureName(), bytes )
-        }
-    }
-    catch( Exception e )
-    {
-        log.error( e )
-    }
-    finally
-    {
-        // Explicitly close the stream
-        if( s3ObjectContent )
-        {
-            s3ObjectContent.close()
-        }
-    }
-}
 
 /**
  * _generatePictureName()
