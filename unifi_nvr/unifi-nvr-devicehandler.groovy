@@ -131,16 +131,20 @@ def nvr_cameraTakeCallback( physicalgraph.device.HubResponse hubResponse )
     
     def descriptionMap = _parseDescriptionAsMap( hubResponse.description )
     
-    if( descriptionMap.key )
+    if( descriptionMap.tempImageKey )
     {
         try
         {
-            storeTemporaryImage( descriptionMap.key, _generatePictureName() )
+            storeTemporaryImage( descriptionMap.tempImageKey, _generatePictureName() )
         }
         catch( Exception e )
         {
             log.error e
         }
+    }
+    else
+    {
+        log.error "API for camera take() FAILED"
     }
 }
 
