@@ -87,6 +87,8 @@ def updated()
     state.motion                 = "inactive"
     state.connectionStatus       = "DISCONNECTED"
     state.pollInterval           = settings.pollInterval ? settings.pollInterval : 5
+    state.pollIsActive           = false
+    state.successiveApiFails     = 0
     
     log.info "${device.displayName} updated with state: ${state}"
     
@@ -117,7 +119,10 @@ def take()
     def key = parent._getApiKey()
     def target = parent._getNvrTarget()
     
-    sendHubCommand( new physicalgraph.device.HubAction("""GET /api/2.0/snapshot/camera/${state.id}?width=480&force=true&apiKey=${key} HTTP/1.1\r\n Accept: */*\r\nHOST: ${target}\r\n\r\n""", physicalgraph.device.Protocol.LAN, "${target}", [outputMsgToS3: true, callback: nvr_cameraTakeCallback]))
+    if( state.connectionStatus == "CONNECTED" )
+    {
+        sendHubCommand( new physicalgraph.device.HubAction("""GET /api/2.0/snapshot/camera/${state.id}?width=480&force=true&apiKey=${key} HTTP/1.1\r\n Accept: */*\r\nHOST: ${target}\r\n\r\n""", physicalgraph.device.Protocol.LAN, "${target}", [outputMsgToS3: true, callback: nvr_cameraTakeCallback]))
+    }
 }
 
 /**
@@ -159,10 +164,36 @@ def nvr_cameraPoll()
     def key = parent._getApiKey()
     def target = parent._getNvrTarget()
     
+    if( state.pollIsActive )
+    {
+        log.error "nvr_cameraPoll() - ${device.displayName} failed to return API call to NVR"
+        
+        ++state.successiveApiFails
+        
+        if( (state.connectionStatus == "CONNECTED") && (state.successiveApiFails > 5) )
+        {
+            log.error "nvr_cameraPoll() - ${device.displayName} has excessive consecutive failed API calls, forcing disconnect status"
+            state.connectionStatus = "DISCONNECTED"
+            _sendConnectionStatus( "${state.connectionStatus}" )
+        }
+    }
+    else
+    {
+        state.successiveApiFails = 0;
+    }
+    
+    state.pollIsActive = true
     sendHubCommand( new physicalgraph.device.HubAction("""GET /api/2.0/camera/${state.id}?apiKey=${key} HTTP/1.1\r\n Accept: application/json\r\nHOST: ${target}\r\n\r\n""", physicalgraph.device.Protocol.LAN, "${target}", [callback: nvr_cameraPollCallback]))
     
+    // Back down interval if we aren't connected
+    def interval = state.pollInterval
+    if( state.connectionStatus == "DISCONNECTED" )
+    {
+        interval = 60
+    }
+    
     // Set overwrite to true instead of using unschedule(), which is expensive, to ensure no dups
-    runIn( state.pollInterval, nvr_cameraPoll, [overwrite: true] )
+    runIn( interval, nvr_cameraPoll, [overwrite: true] )
 }
 
 /**
@@ -176,6 +207,8 @@ def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
     def data = hubResponse.json.data[0]
     
     //log.debug "nvr_cameraPollCallback: ${device.displayName}, ${hubResponse}"
+
+    state.pollIsActive = false;
 
     if( data.state != state.connectionStatus )
     {
@@ -255,7 +288,7 @@ private _sendConnectionStatus( connectionStatus )
         return
     }
     
-    //log.debug "_sendConnectionStatus( ${connectionStatus} )"
+    //log.debug "_sendConnectionStatus: ${device.displayName} ${connectionStatus}"
     
     def map = [
                 name: "connectionStatus",
