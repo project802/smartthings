@@ -68,8 +68,12 @@ def nvr_initialize()
             method: "POST",
             protocol: physicalgraph.device.Protocol.LAN,
             HOST: state.nvrTarget,
-            body: "{\"username\":\"${settings.username}\", \"password\":\"${settings.password}\"}",
-            headers: [ "Host":"${state.nvrTarget}", "Accept":"application/json", "Content-Type":"application/json" ]        
+            body: "{\"email\":\"${settings.username}\", \"password\":\"${settings.password}\"}",
+            headers: [
+                "Host":"${state.nvrTarget}",
+                "Accept":"application/json",
+                "Content-Type":"application/json"
+            ]        
         ],
         null,
         [
@@ -82,6 +86,12 @@ def nvr_initialize()
 
 def nvr_loginCallback( physicalgraph.device.HubResponse hubResponse )
 {
+    if( hubResponse.status != 200 )
+    {
+        log.error "nvr_loginCallback: unable to login.  Please check IP, username and password.  Status ${hubResponse.status}.";
+        return;
+    }
+    
     String setCookieHeader = hubResponse?.headers['set-cookie'];
     def cookies = setCookieHeader.split(";").inject([:]) { cookies, item ->
         def nameAndValue = item.split("=");
@@ -145,7 +155,7 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
         return
     }
     
-    state.nvrName = data.nvrName[0]
+    state.nvrName = data.servers[0].name[0]
     log.info "nvr_bootstrapPollCallback: response from ${state.nvrName}"
 
     if( data.cameras[0].size < 1 )
