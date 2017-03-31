@@ -101,10 +101,10 @@ def nvr_loginCallback( physicalgraph.device.HubResponse hubResponse )
         }
     }
     
-    if( !state.loginCookie || (hubResponse.json?.data?.isLoggedIn[0] == false) )
+    if( !state.loginCookie )
     {
         log.error "nvr_loginCallback: unable to login.  Please check IP, username and password.";
-        log.debug "nvr_loginCallback: loginCookie is ${loginCookie}, isLoggedIn is ${hubResponse.json?.data?.isLoggedIn[0]}";
+        log.debug "nvr_loginCallback: loginCookie is ${loginCookie}";
         return;
     }
     else
