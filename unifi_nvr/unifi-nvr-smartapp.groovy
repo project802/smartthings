@@ -56,7 +56,7 @@ def updated() {
 def nvr_initialize()
 {
     state.nvrName = "Unknown"
-    state.loginCookie = "";
+    state.loginCookie = null;
     state.apiKey = "";
     
     state.nvrTarget = "${settings.nvrAddress}:${settings.nvrPort}"
@@ -64,9 +64,8 @@ def nvr_initialize()
 
     def hubAction = new physicalgraph.device.HubAction(
         [
-            path: "/api/2.0/login HTTP/1.1\r\n",
+            path: "/api/2.0/login",
             method: "POST",
-            protocol: physicalgraph.device.Protocol.LAN,
             HOST: state.nvrTarget,
             body: "{\"email\":\"${settings.username}\", \"password\":\"${settings.password}\"}",
             headers: [
@@ -93,6 +92,13 @@ def nvr_loginCallback( physicalgraph.device.HubResponse hubResponse )
     }
     
     String setCookieHeader = hubResponse?.headers['set-cookie'];
+    
+    if( !setCookieHeader )
+    {
+        log.error "nvr_loginCallback: no headers found for login token.  Please check IP, username and password.";
+        return;
+    }
+    
     def cookies = setCookieHeader.split(";").inject([:]) { cookies, item ->
         def nameAndValue = item.split("=");
         if( nameAndValue[0] == "JSESSIONID_AV" )
@@ -116,9 +122,8 @@ def nvr_loginCallback( physicalgraph.device.HubResponse hubResponse )
     
     def hubAction = new physicalgraph.device.HubAction(
         [
-            path: "/api/2.0/bootstrap HTTP/1.1\r\n",
+            path: "/api/2.0/bootstrap",
             method: "GET",
-            protocol: physicalgraph.device.Protocol.LAN,
             HOST: state.nvrTarget,
             headers: [ 
                 "Host":"${state.nvrTarget}", 
