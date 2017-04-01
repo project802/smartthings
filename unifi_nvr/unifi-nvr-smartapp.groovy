@@ -186,7 +186,7 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
                                "data": [
                                    "uuid" : camera.uuid,
                                    "name" : camera.name,
-                                   "id" : camera._id
+                                   "id" : camera._id ? camera._id : camera.uuid
                                ]
                            ]
                            
