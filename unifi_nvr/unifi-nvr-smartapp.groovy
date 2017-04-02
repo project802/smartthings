@@ -162,18 +162,14 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
     
     state.nvrName = data.servers[0].name[0]
     log.info "nvr_bootstrapPollCallback: response from ${state.nvrName}"
-
-    if( data.cameras[0].size < 1 )
-    {
-    	log.warn "nvr_bootstrapPollCallback: no cameras found!"
-    	return
-    }
     
-    log.info "nvr_bootstrapPollCallback: found ${data.cameras[0].size} camera(s)"
+    def camerasProcessed = 0
     
     data.cameras[0].each { camera ->
         def dni = "${camera.mac}"
         def child = getChildDevice( dni )
+        
+        ++camerasProcessed
         
         if( child )
         {
@@ -202,6 +198,8 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
             }
         }
     }
+    
+    log.info "Processed ${camerasProcessed} cameras"
 }
 
 /**
