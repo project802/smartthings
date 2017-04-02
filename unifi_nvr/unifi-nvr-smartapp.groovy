@@ -199,7 +199,7 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
         }
     }
     
-    log.info "Processed ${camerasProcessed} cameras"
+    log.info "nvr_bootstrapPollCallback: processed ${camerasProcessed} cameras"
 }
 
 /**
