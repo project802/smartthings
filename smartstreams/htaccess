@@ -1,0 +1,8 @@
+# If you have Apache with mod_rewrite, use these rules to allow the API to be addressed without the .php extension.
+# For example, /api/events/get instead of /api/events/get.php.
+# This can be good if the underlying technology shifts from PHP to something else without having to update everything.
+
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule (.*) $1.php [L]
