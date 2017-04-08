@@ -36,6 +36,8 @@ preferences {
         input "presences", "capability.presenceSensor", title: "Presence", required: false, multiple: true, displayDuringSetup: true
         input "switches", "capability.switch", title: "Switches", required: false, multiple: true, displayDuringSetup: true
         input "waterSensors", "capability.waterSensor", title: "Water Sensors", required: false, multiple: true, displayDuringSetup: true
+        input "lightSensors", "capability.illuminanceMeasurement", title: "Light Sensors", required: false, multiple: true, displayDuringSetup: true
+        input "humiditySensors", "capability.relativeHumidityMeasurement", title: "Humidity Sensors", required: false, multiple: true, displayDuringSetup: true
     }
 
     section ("SmartStreams Feed PUT API key...")
@@ -65,6 +67,18 @@ def initialize()
     subscribe( presences, "presence", handlePresenceEvent )
     subscribe( switches, "switch", handleSwitchEvent )
     subscribe( waterSensors, "water", handleWaterEvent )
+    subscribe( lightSensors, "illuminance", handleLightEvent )
+    subscribe( humiditySensors, "humidity", handleHumidityEvent )
+}
+
+def handleHumidityEvent( evt )
+{
+    sendValue( evt )
+}
+
+def handleLightEvent( evt )
+{
+    sendValue( evt )
 }
 
 def handleWaterEvent( evt )
