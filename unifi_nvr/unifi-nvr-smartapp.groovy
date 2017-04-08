@@ -83,6 +83,9 @@ def nvr_initialize()
     sendHubCommand( hubAction );
 }
 
+/**
+ * nvr_loginCallback() - Callback from hubAction that sends the login API request
+ */
 def nvr_loginCallback( physicalgraph.device.HubResponse hubResponse )
 {
     if( hubResponse.status != 200 )
@@ -99,6 +102,7 @@ def nvr_loginCallback( physicalgraph.device.HubResponse hubResponse )
         return;
     }
     
+    // JSESSIONID_AV is the login cookie we need to use for other API calls
     def cookies = setCookieHeader.split(";").inject([:]) { cookies, item ->
         def nameAndValue = item.split("=");
         if( nameAndValue[0] == "JSESSIONID_AV" )
@@ -118,6 +122,8 @@ def nvr_loginCallback( physicalgraph.device.HubResponse hubResponse )
         log.info "nvr_loginCallback: login successful!";
     }
     
+    // If there is no API key or its off, the cameras won't work.
+    // [todo] add API key validation in SmartApp?
     state.apiKey = hubResponse.json?.data?.apiKey[0];
     
     def hubAction = new physicalgraph.device.HubAction(
