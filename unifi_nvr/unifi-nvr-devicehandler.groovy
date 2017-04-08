@@ -11,8 +11,6 @@
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
- *
- *  S3 management code based upon work from DLink-Camera-Manager, Copyright 2015 blebson
  *  
  *  -----------------------------------------------------------------------------------------------------------------
  * 
@@ -121,7 +119,24 @@ def take()
     
     if( state.connectionStatus == "CONNECTED" )
     {
-        sendHubCommand( new physicalgraph.device.HubAction("""GET /api/2.0/snapshot/camera/${state.id}?width=480&force=true&apiKey=${key} HTTP/1.1\r\n Accept: */*\r\nHOST: ${target}\r\n\r\n""", physicalgraph.device.Protocol.LAN, "${target}", [outputMsgToS3: true, callback: nvr_cameraTakeCallback]))
+        def hubAction = new physicalgraph.device.HubAction(
+            [
+                path: "/api/2.0/snapshot/camera/${state.id}?width=480&force=true&apiKey=${key}",
+                method: "GET",
+                HOST: target,
+                headers: [
+                    "Host":"${target}",
+                    "Accept":"*/*"
+                ]        
+            ],
+            null,
+            [
+                outputMsgToS3: true,
+                callback: nvr_cameraTakeCallback 
+            ]
+        );
+    
+        sendHubCommand( hubAction )
     }
 }
 
@@ -136,7 +151,7 @@ def nvr_cameraTakeCallback( physicalgraph.device.HubResponse hubResponse )
     
     def descriptionMap = _parseDescriptionAsMap( hubResponse.description )
     
-    if( descriptionMap.tempImageKey )
+    if( descriptionMap?.tempImageKey )
     {
         try
         {
@@ -183,7 +198,24 @@ def nvr_cameraPoll()
     }
     
     state.pollIsActive = true
-    sendHubCommand( new physicalgraph.device.HubAction("""GET /api/2.0/camera/${state.id}?apiKey=${key} HTTP/1.1\r\n Accept: application/json\r\nHOST: ${target}\r\n\r\n""", physicalgraph.device.Protocol.LAN, "${target}", [callback: nvr_cameraPollCallback]))
+    
+    def hubAction = new physicalgraph.device.HubAction(
+        [
+            path: "/api/2.0/camera/${state.id}?apiKey=${key}",
+            method: "GET",
+            HOST: target,
+            headers: [
+                "Host":"${target}",
+                "Accept":"application/json"
+            ]        
+        ],
+        null,
+        [
+            callback: nvr_cameraPollCallback 
+        ]
+    );
+    
+    sendHubCommand( hubAction );
     
     // Back down interval if we aren't connected
     def interval = state.pollInterval
@@ -204,12 +236,18 @@ def nvr_cameraPoll()
 def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
 {
     def motion = "inactive"
-    def data = hubResponse.json.data[0]
+    def data = hubResponse.json?.data[0]
     
     //log.debug "nvr_cameraPollCallback: ${device.displayName}, ${hubResponse}"
-
+    
     state.pollIsActive = false;
-
+    
+    if( !data )
+    {
+        log.error "nvr_cameraPollCallback: no data returned";
+        return;
+    }
+    
     if( data.state != state.connectionStatus )
     {
         state.connectionStatus = data.state
