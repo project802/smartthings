@@ -31,6 +31,7 @@ Your SmartThings hub running this SmartApp must be on the same subnet as the NVR
 
 ## Known Compatibility
 NVR v3.1.5 running on Windows 8 with airCam Dome
+
 NVR v3.5.2 running on a hardware NVR with UVC G3 Domes
 
 ## Known Issues
