@@ -82,15 +82,16 @@ def updated()
     state.name                   = getDataValue( "name" )
     state.id                     = getDataValue( "id" )
     state.lastRecordingStartTime = null
-    state.motion                 = "inactive"
-    state.connectionStatus       = "DISCONNECTED"
+    state.motion                 = "uninitialized"
+    state.connectionStatus       = "uninitialized"
     state.pollInterval           = settings.pollInterval ? settings.pollInterval : 5
     state.pollIsActive           = false
     state.successiveApiFails     = 0
+    state.lastPoll               = new Date().time
     
     log.info "${device.displayName} updated with state: ${state}"
     
-    refresh()
+    runEvery1Minute( nvr_cameraPollWatchdog )
     
     nvr_cameraPoll()
 }
@@ -169,6 +170,26 @@ def nvr_cameraTakeCallback( physicalgraph.device.HubResponse hubResponse )
 }
 
 /**
+ * nvr_cameraPollWatchdog()
+ * 
+ * Uses a different scheduling method to watch for failures with the runIn method used by nvr_cameraPoll
+ */
+def nvr_cameraPollWatchdog()
+{
+    def now = new Date().time
+    
+    def elapsed = Math.floor( (now - state.lastPoll) / 1000 )
+    
+    //log.debug "nvr_cameraPollWatchdog: it has been ${elapsed} seconds since a poll for ${device.displayName}"
+    
+    if( elapsed > (state.pollInterval * 5) )
+    {
+        log.error "nvr_cameraPollWatchdog: expired for ${device.displayName}!"
+        nvr_cameraPoll()
+    }
+}
+
+/**
  * nvr_cameraPoll()
  *
  * Once called, starts cyclic call to itself periodically.  Main loop of the device handler to make API
@@ -217,15 +238,8 @@ def nvr_cameraPoll()
     
     sendHubCommand( hubAction );
     
-    // Back down interval if we aren't connected
-    def interval = state.pollInterval
-    if( state.connectionStatus == "DISCONNECTED" )
-    {
-        interval = 60
-    }
-    
     // Set overwrite to true instead of using unschedule(), which is expensive, to ensure no dups
-    runIn( interval, nvr_cameraPoll, [overwrite: true] )
+    runIn( state.pollInterval, nvr_cameraPoll, [overwrite: true] )
 }
 
 /**
@@ -236,17 +250,20 @@ def nvr_cameraPoll()
 def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
 {
     def motion = "inactive"
-    def data = hubResponse.json?.data[0]
+    def data = hubResponse?.json?.data
     
     //log.debug "nvr_cameraPollCallback: ${device.displayName}, ${hubResponse}"
     
     state.pollIsActive = false;
+    state.lastPoll = new Date().time
     
-    if( !data )
+    if( !data[0] )
     {
         log.error "nvr_cameraPollCallback: no data returned";
         return;
     }
+    
+    data = data[0]
     
     if( data.state != state.connectionStatus )
     {
