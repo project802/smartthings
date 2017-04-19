@@ -111,8 +111,6 @@ def updated()
     log.info "${device.displayName} updated with state: ${state}"
     log.info "${device.displayName} updated with settings: ${settings}"
     
-    darksky_update()
-    
     runEvery10Minutes( darksky_update )
 }
 
@@ -198,7 +196,7 @@ def darksky_updateCallback( response, data )
         sendEvent( name: "water", value: state.water )
     }
     
-    def illuminance = _estimateLux( json.daily.data[0].sunriseTime, json.daily.data[0].sunsetTime, json.currently.icon )
+    def illuminance = _estimateLux( json.daily.data[0].sunriseTime, json.daily.data[0].sunsetTime, json.currently.icon, json.currently.cloudCover )
     if( illuminance != state.illuminance )
     {
         state.illuminance = illuminance
@@ -206,80 +204,70 @@ def darksky_updateCallback( response, data )
     }   
 }
 
-private _estimateLux( sunrise, sunset, weatherIcon )
+private _estimateLux( sunrise, sunset, weatherIcon, cloudCover )
 {
-    // between astro and civil
-    def lux = 700
-    
-    def delta = (60*30)
-    
     def now = new Date().time / 1000
     
-    // Add 23* of arc to sunset time to get astronomical sunset
-    // [todo] use sidereal time?
-    def astroSunrise = sunrise - ((23/360)*(24*60*60))
-    def astroSunset = sunset + ((23/360)*(24*60*60))
+    // shift civil sunset/sunrise by 30 minutes to adjust approximately for nautical sunrise/sunset
+    sunset = sunset + (60 * 30)
+    sunrise = sunrise - (60 * 30)
     
-    if( (now < astroSunrise) || (now > astroSunset) )
-    {
-        lux = 0
-    }
-    else if( (now > sunrise) && (now < sunset) )
-    {
-        switch( weatherIcon )
-        {
-            case ['fog']:
-                lux = 1000
-                break
-                
-            case ['rain', 'snow', 'sleet', 'cloudy']:
-                lux = 2500
-                break
-                
-            case 'partly-cloudy-day':
-                lux = 25000
-                break
-                
-            case ['clear-night', 'partly-cloudy-night']:
-                lux = 1000
-                break;
-                
-            default:
-                //['clear-day', 'wind']
-                lux = 35000
-                break
-        }
-    }
+    def timeToSunrise = sunrise - now
+    def timeToSunset = sunset - now
     
-    def adjust = 1
-    def offset = 0
+    def isNight = (now < sunrise) || (now > sunset)
     
-    // Twilight before sunrise
-    if( (now > astroSunrise) && (now < sunrise) )
+    def lux = 0
+    
+    // 60 minutes after/before nautical sunrise/sunset, start the ramp
+    def sunsetSunriseDelta = ( 60 * 60 )
+    
+    switch( weatherIcon )
     {
-        adjust = (now - astroSunrise) / (sunrise - astroSunrise)
-    }
-    // Sunrise into daytime
-    else if( (now > sunrise) && (now < (sunrise + delta)) )
-    {
-        adjust = (now - sunrise) / delta
-        offset = 700
-    }
-    // Daytime into sunset
-    else if( (now > (sunset - delta)) && (now < sunset) )
-    {
-        adjust = (sunset - now) / delta
-        offset = 700
-    }
-    // Twilight into night
-    else if( (now > sunset) && (now < astroSunset) )
-    {
-        adjust = (astroSunset - now) / (astroSunset - sunset)
+        case ['fog']:
+        	lux = 1000
+        	break
+
+        case ['rain', 'snow', 'sleet', 'cloudy']:
+        	lux = 2500
+        	break
+
+        case 'partly-cloudy-day':
+        	lux = 25000 * (1 - cloudCover)
+        	break
+
+        case ['clear-night', 'partly-cloudy-night']:
+        	lux = 0
+        	break;
+
+        default:
+            //['clear-day', 'wind']
+            lux = 35000 * (1 - cloudCover)
+        	break
     }
     
-    lux = (lux - offset) * adjust
+    // Idealy we locate the angle of the sun (given a geography and time) and use the available sun area above the horizon
+    // but without that complexity, just use a fixed exponential growth/decay
+    def horizonFactor = 1
     
-    //log.debug "time is ${now}, icon is ${weatherIcon}, lux is ${lux}"
+    if( (timeToSunrise <= 0) && (Math.abs(timeToSunrise) <= sunsetSunriseDelta) )
+    {
+        // daybreak
+        horizonFactor = 0.0041 * Math.exp( 0.0031 * Math.abs(timeToSunrise) ) / 100
+    }
+    else if( (timeToSunset >= 0) && (timeToSunset <= sunsetSunriseDelta) )
+    {
+        // golden hour
+        horizonFactor = 0.0041 * Math.exp( 0.0031 * timeToSunset ) / 100
+    }
+    else if( isNight )
+    {
+        horizonFactor = 0
+    }
+
+    def newLux = Math.round( lux * horizonFactor )
     
-    Math.round( lux )
+    log.info "${now},${timeToSunrise},${timeToSunset},${weatherIcon},${cloudCover},${isNight},${lux},${horizonFactor},${newLux}"
+
+    newLux
 }
