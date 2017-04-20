@@ -188,7 +188,10 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
                                "data": [
                                    "uuid" : camera.uuid,
                                    "name" : camera.name,
-                                   "id" : camera.platform == "GEN3L" ? camera._id : camera.uuid
+                                   // 1st generation: doesn't enumerate the 'camera.platform', uses camera.uuid for API calls
+                                   // 2nd generation: camera.platform = "GEN2", uses camera._id for API calls
+                                   // 3rd generation: camera.platform = "GEN3L", uses camera._id for API calls
+                                   "id" : camera.platform ? camera._id : camera.uuid
                                ]
                            ]
                            
