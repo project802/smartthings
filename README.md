@@ -10,3 +10,6 @@ SmartApp for collecting events and sending them to a single API endpoint.  Usefu
 
 ## dark_sky_weather
 Device Type Handler for bringing Dark Sky weather data into SmartThings for temperature, humidity, illuminance estimation and water (if there is precipitation).
+
+## nut_client
+Device Type Handler for a NUT server, by means of a proxy.  Exposes events for battery, power, power source and line voltage.
