@@ -54,25 +54,12 @@ metadata {
             state "default", label : '${currentValue}'
         }
         
-        graphTile( name: "powerGraph", attribute: "device.power" )
-        
         main( "batterySmall" )
-        details( "powerGraph", "battery", "power", "voltage", "powerSource" )
+        details( "battery", "power", "voltage", "powerSource" )
     }
     
     preferences {
         input name: "nutServer", type: "text", title: "NUT Proxy Server IP:port", description: "IP:port address of the NUT proxy server", defaultValue: "10.0.0.6:80"
-        input name: "graphPrecision", type: "enum", title: "Graph Precision", description: "Daily", required: true, options: graphPrecisionOptions(), defaultValue: "Daily"
-        input name: "graphType", type: "enum", title: "Graph Type", description: "line", required: false, options: graphTypeOptions()
-    }
-    
-    mappings {
-        path("/graph/:attribute") {
-            action:
-            [
-                GET: "renderGraph"
-            ]
-        }
     }
 }
 
@@ -166,7 +153,6 @@ private _sendBattery( batteryChargePercent )
                 unit : "%"
               ]
     
-    storeGraphData( map.name, map.value )
     sendEvent( map )
 }
 
@@ -179,7 +165,6 @@ private _sendPower( powerWatts )
                 unit : "W"
               ]
     
-    storeGraphData( map.name, map.value )
     sendEvent( map )
 }
 
@@ -191,8 +176,7 @@ private _sendVoltage( voltage )
                 descriptionText : device.displayName + " AC line is ${voltage} V",
                 unit : "V"
               ]
-              
-    storeGraphData( map.name, map.value )
+    
     sendEvent( map )
 }
 
@@ -203,22 +187,6 @@ private _sendPowerSource( powerSource )
                 value : powerSource,
                 descriptionText : device.displayName + " is on ${powerSource}"
               ]
-              
-    storeGraphData( map.name, map.value )
+    
     sendEvent( map )
-}
-
-def renderGraph()
-{
-    def data = fetchGraphData( params.attribute )
-    
-    def totalData = data*.runningSum
-    
-    def xValues = data*.unixTime
-    
-    def yValues = [
-        Total: [color: "#49a201", data: totalData]
-    ]
-    
-    renderGraph( attribute: params.attribute, xValues: xValues, yValues: yValues, focus: "Total", label: "Watts" )
 }
