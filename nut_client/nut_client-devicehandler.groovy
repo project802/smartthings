@@ -161,7 +161,7 @@ private _sendPower( powerWatts )
     def map = [
                 name : "power",
                 value : powerWatts,
-                descriptionText : device.displayName + " load is ${powerWatts}%",
+                descriptionText : device.displayName + " load is ${powerWatts} W",
                 unit : "W"
               ]
     
