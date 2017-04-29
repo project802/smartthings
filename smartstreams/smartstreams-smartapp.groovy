@@ -38,6 +38,12 @@ preferences {
         input "waterSensors", "capability.waterSensor", title: "Water Sensors", required: false, multiple: true, displayDuringSetup: true
         input "lightSensors", "capability.illuminanceMeasurement", title: "Light Sensors", required: false, multiple: true, displayDuringSetup: true
         input "humiditySensors", "capability.relativeHumidityMeasurement", title: "Humidity Sensors", required: false, multiple: true, displayDuringSetup: true
+        input "powerMeters", "capability.powerMeter", title: "Power Meters", required: false, multiple: true, displayDuringSetup: true
+        input "energyMeters", "capability.energyMeter", title: "Energy Meters", required: false, multiple: true, displayDuringSetup: true
+        input "powerSources", "capability.powerSource", title: "Power Sources", required: false, multiple: true, displayDuringSetup: true
+        input "batteries", "capability.battery", title: "Batteries", required: false, multiple: true, displayDuringSetup: true
+        input "voltageMeters", "capability.voltageMeasurement", title: "Voltage Meters", required: false, multiple: true, displayDuringSetup: true
+        input "buttons", "capability.button", title: "Buttons", required: false, multiple: true, displayDuringSetup: true
     }
 
     section ("SmartStreams Feed PUT API key...")
@@ -69,6 +75,42 @@ def initialize()
     subscribe( waterSensors, "water", handleWaterEvent )
     subscribe( lightSensors, "illuminance", handleLightEvent )
     subscribe( humiditySensors, "humidity", handleHumidityEvent )
+    subscribe( powerMeters, "power", handlePowerEvent )
+    subscribe( energyMeters, "energy", handleEnergyEvent )
+    subscribe( powerSources, "powerSource", handlePowerSourceEvent )
+    subscribe( batteries, "battery", handleBatteryEvent )
+    subscribe( voltageMeters, "voltage", handleVoltageEvent )
+    subscribe( buttons, "button", handleButtonEvent )
+}
+
+def handleButtonEvent( evt )
+{
+    sendValue( evt )
+}
+
+def handleEnergyEvent( evt )
+{
+    sendValue( evt )
+}
+
+def handlePowerEvent( evt )
+{
+    sendValue( evt )
+}
+
+def handlePowerSourceEvent( evt )
+{
+    sendValue( evt )
+}
+
+def handleBatteryEvent( evt )
+{
+    sendValue( evt )
+}
+
+def handleVoltageEvent( evt )
+{
+    sendValue( evt )
 }
 
 def handleHumidityEvent( evt )
