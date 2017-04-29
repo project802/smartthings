@@ -47,6 +47,9 @@
  *  03-29-2017 : Made changes to account for ST v2.3.1 bugs with text rendering.
  *  
  */
+
+import java.text.DecimalFormat
+
 metadata {
     definition (name: "My Aeon Home Energy Monitor Gen1", namespace: "jscgs350", author: "jscgs350") 
 {
@@ -57,6 +60,7 @@ metadata {
     capability "Refresh"
     capability "Polling"
     capability "Battery"
+    capability "Power Source"
     
     attribute "currentKWH", "string" 		// Used to show current kWh since last reset
     attribute "currentWATTS", "string"  	// Used to show current watts being used on the main tile
@@ -97,7 +101,7 @@ metadata {
             state("default", label: '${currentValue}kWh', backgroundColor:"#ffffff")
         }
         valueTile("kwhCosts", "device.kwhCosts", width: 3, height: 1, inactiveLabel: false, decoration: "flat") {
-            state("default", label: 'Cost $${currentValue}', backgroundColor:"#ffffff")
+            state("default", label: 'Cost ${currentValue}', backgroundColor:"#ffffff")
         }
         standardTile("resetmin", "device.resetmin", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
             state "default", label:'Reset Min', action:"resetmin", icon:"st.secondary.refresh-icon"
@@ -147,49 +151,44 @@ def updated() {
 
 def parse(String description) {
     //log.debug "Parse received ${description}"
-    def result = null
-    def cmd = zwave.parse(description, [0x31: 1, 0x32: 1, 0x60: 3, 0x80: 1])
+    def result = []
+    def cmd = zwave.parse( description, [0x31: 1, 0x32: 1, 0x60: 3, 0x80: 1] )
     //log.debug "Parse returned ${cmd}"
     
     if( cmd )
     {
-        result = createEvent(zwaveEvent(cmd))
+        result = zwaveEvent( cmd )
     }
     
-    if( result )
-    {
-        //log.debug "Result returned ${result}"
-    }
-
-    def statusTextmsg = ""
-	statusTextmsg = "Min was ${device.currentState('minWATTS')?.value}.\nMax was ${device.currentState('maxWATTS')?.value}."
-    sendEvent("name": "statusText", "value": statusTextmsg)
+    def statusTextmsg = "Min was ${device.currentState('minWATTS')?.value}.\nMax was ${device.currentState('maxWATTS')?.value}."
+    result << createEvent( "name": "statusText", "value": statusTextmsg, displayed : false )
     
     if( displayPowerStatus )
     {
-        if( state.receivedOnBattery )
+        def powerSource = device.currentState('powerSource')?.value
+        def battery = device.currentState('battery')?.value
+        
+        battery = battery ? battery : "unknown"
+        
+        if( powerSource == "battery" )
         {
-            if( state.onBattery )
-            {
-                def value = (null == device.currentState('battery')?.value) ? "pending" : (device.currentState('battery').value + "%")
-                
-                sendEvent( name : "powerStatus", value : "Battery ${value}", displayed : false )
-            }
-            else
-            {
-                sendEvent( name : "powerStatus", value : "USB Power", displayed : false )
-            }
+            result << createEvent( name : "powerStatus", value : "Battery ${battery}%", displayed : false )
+        }
+        else if( powerSource == "mains" )
+        {
+            result << createEvent( name : "powerStatus", value : "USB Power, battery ${battery}%", displayed : false )
         }
         else
         {
-            sendEvent( name : "powerStatus", value : "Power state unknown", displayed : false )
+            result << createEvent( name : "powerStatus", value : "Power state unknown, battery ${battery}%", displayed : false )
         }
     }
     else
     {
-        sendEvent( name : "powerStatus", value : "", displayed : false )
+        result << createEvent( name : "powerStatus", value : "", displayed : false )
     }
     
+    //log.debug result
     return result
 }
 
@@ -197,25 +196,34 @@ def zwaveEvent(physicalgraph.zwave.commands.meterv1.MeterReport cmd) {
     def dispValue
     def newValue
     def timeString = new Date().format("MM-dd-yy h:mm a", location.timeZone)
+    
+    def result = []
+    
     if (cmd.meterType == 33) {
         if (cmd.scale == 0) {
             newValue = cmd.scaledMeterValue
             if (newValue != state.energyValue) {
                 dispValue = String.format("%3.${decimalPositions}f", newValue )
-                sendEvent(name: "currentKWH", value: dispValue as String, unit: "", displayed: false)
+                
+                result << createEvent( name: "currentKWH", value: dispValue as String, unit: "", displayed: false )
+                
                 state.energyValue = newValue
+                
                 BigDecimal costDecimal = newValue * ( kWhCost as BigDecimal)
-                def costDisplay = String.format("%3.2f",costDecimal)
-                sendEvent(name: "kwhCosts", value: "${costDisplay}", unit: "", displayed: false)
-                return [name: "energy", value: newValue, unit: "kWh", displayed: displayEvents]
+                
+                def costDisplay = new DecimalFormat("\$##,###.##").format(costDecimal)
+                
+                result << createEvent( name: "kwhCosts", value: "${costDisplay}", unit: "", displayed: false )
+                result << createEvent( name: "energy", value: newValue, unit: "kWh", displayed: displayEvents )
             }
         } else if (cmd.scale == 1) {
             newValue = cmd.scaledMeterValue
             if (newValue != state.energyValue) {
                 dispValue = newValue+"kVAh"
-                sendEvent(name: "currentKWH", value: dispValue as String, unit: "", displayed: false)
                 state.energyValue = newValue
-                return [name: "energy", value: newValue, unit: "kVAh", displayed: displayEvents]
+                
+                result << createEvent( name: "currentKWH", value: dispValue as String, unit: "", displayed: false )
+                result << createEvent( name: "energy", value: newValue, unit: "kVAh", displayed: displayEvents )
             }
         }
         else if (cmd.scale==2) {                
@@ -225,64 +233,74 @@ def zwaveEvent(physicalgraph.zwave.commands.meterv1.MeterReport cmd) {
 	            if (newValue != state.powerValue) {						// Only process a meter reading if it isn't the same as the last one
                     dispValue = String.format("%3.${decimalPositions}f", newValue )
                     
-	                sendEvent(name: "currentWATTS", value: dispValue as String, unit: "", displayed: false)
+	                result << createEvent( name: "currentWATTS", value: dispValue as String, unit: "", displayed: false )
                     
 	                if (newValue < state.powerLow) {
 	                    dispValue = newValue+"w"+" on "+timeString
-	                    sendEvent(name: "minWATTS", value: dispValue as String, unit: "", displayed: false)
-	                    state.powerLow = newValue
+                        state.powerLow = newValue
+                        
+	                    result << createEvent( name: "minWATTS", value: dispValue as String, unit: "", displayed: false )
 	                }
                     
 	                if (newValue > state.powerHigh) {
 	                    dispValue = newValue+"w"+" on "+timeString
-	                    sendEvent(name: "maxWATTS", value: dispValue as String, unit: "", displayed: false)
-	                    state.powerHigh = newValue
+                        state.powerHigh = newValue
+                        
+	                    result << createEvent( name: "maxWATTS", value: dispValue as String, unit: "", displayed: false )
 	                }
                     
 	                state.powerValue = newValue
-                    return [name: "power", value: newValue, unit: "W", displayed: displayEvents]
+                    
+                    result << createEvent( name: "power", value: newValue, unit: "W", displayed: displayEvents )
 	            }
 			}            
         }
     }
+    
+    return result
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.batteryv1.BatteryReport cmd)
 {
-    if( !state.receivedOnBattery )
-    {
-        log.debug "Ignoring battery status, no on battery status received"
-        return [:]
-    }
+    def map = [ 
+        name : "battery", 
+        unit : "%", 
+        displayed : displayEvents,
+        value : (cmd.batteryLevel == 0xFF) ? 1 : cmd.batteryLevel
+    ];
     
-    def map = [ name : "battery", unit : "%", value : 100, displayed : displayEvents ];
+    // Fetch power source
+    sendHubCommand( new physicalgraph.device.HubAction(zwave.configurationV1.configurationGet(parameterNumber: 20).format()) )
     
-    if( state.onBattery )
-    {
-        map.value = (cmd.batteryLevel == 0xFF) ? 1 : cmd.batteryLevel
-    }
-    
-    return map
+    return createEvent( map )
 }
 
 def zwaveEvent(physicalgraph.zwave.Command cmd)
 {
+    def result = []
+    
     if( cmd.parameterNumber == 20 )
     {
-        state.onBattery = (cmd.scaledConfigurationValue == 0 ? true : false)
-        state.receivedOnBattery = true
+        def powerSource = (cmd.scaledConfigurationValue == 0) ? "battery" : "mains"
         
-        return [ name : "receivedOnBattery", value : onBattery ]
+        def map = [
+            name : "powerSource",
+            value : powerSource,
+            description : "${device.displayName} is on ${powerSource}"
+        ]
+        
+        result << createEvent( map )
+    }
+    else
+    {
+        log.error "Unhandled event ${cmd}"
     }
     
-    log.debug "Unhandled event ${cmd}"
-    
-    return [:]
+    return result
 }
 
 def refresh()
 {
-    log.debug "Refreshed ${device.name}"
     delayBetween([
         zwave.meterV2.meterGet(scale: 0).format(),
         zwave.meterV2.meterGet(scale: 2).format()
@@ -300,21 +318,23 @@ def ping()
 	refresh()
 }
 
-def resetkwh() {
+def resetkwh()
+{
     _resetValues( false, false, true )
 }
 
-def resetmin() {
+def resetmin()
+{
     _resetValues( true, false, false )
 }
 
-def resetmax() {
+def resetmax()
+{
     _resetValues( false, true, false )
 }
 
-def resetMeter() {
-	log.debug "resetMeter"
-    
+def resetMeter()
+{
     _resetValues( true, true, true )
 }
 
@@ -358,7 +378,8 @@ private _resetValues( resetMin, resetMax, resetkWh )
     }
 }
 
-def configure() {
+def configure()
+{
     log.debug "${device.displayName} configuring..."
     
     if( null == state.receivedOnBattery )
