@@ -88,6 +88,8 @@ def nvr_initialize()
  */
 def nvr_loginCallback( physicalgraph.device.HubResponse hubResponse )
 {
+    log.info "nvr_loginCallback: callback received"
+    
     if( hubResponse.status != 200 )
     {
         log.error "nvr_loginCallback: unable to login.  Please check IP, username and password.  Status ${hubResponse.status}.";
@@ -176,6 +178,12 @@ def nvr_bootstrapPollCallback( physicalgraph.device.HubResponse hubResponse )
         def child = getChildDevice( dni )
         
         ++camerasProcessed
+        
+        if( !camera.managed )
+        {
+            log.info "nvr_bootstrapPollCallback: skipping unmanaged camera \"${camera.name}\""
+            return
+        }
         
         if( child )
         {
