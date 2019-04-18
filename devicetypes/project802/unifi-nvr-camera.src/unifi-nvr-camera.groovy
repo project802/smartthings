@@ -150,13 +150,13 @@ def nvr_cameraTakeCallback( physicalgraph.device.HubResponse hubResponse )
 {
     //log.debug( "nvr_cameraTakeCallback: ${hubResponse.description}" )
     
-    def descriptionMap = _parseDescriptionAsMap( hubResponse.description )
+    def descriptionMap = stringToMap( hubResponse.description )
     
     if( descriptionMap?.tempImageKey )
     {
         try
         {
-            storeTemporaryImage( descriptionMap.tempImageKey, _generatePictureName() )
+            storeTemporaryImage( descriptionMap.tempImageKey, java.util.UUID.randomUUID().toString().replaceAll('-', '') )
         }
         catch( Exception e )
         {
@@ -165,7 +165,7 @@ def nvr_cameraTakeCallback( physicalgraph.device.HubResponse hubResponse )
     }
     else
     {
-        log.error "API for camera take() FAILED"
+        log.error "API for camera take() FAILED: ${descriptionMap.error}"
     }
 }
 
@@ -257,7 +257,7 @@ def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
     state.pollIsActive = false;
     state.lastPoll = new Date().time
     
-    if( !data[0] )
+    if( !data || !data[0] )
     {
         log.error "nvr_cameraPollCallback: no data returned";
         return;
@@ -352,31 +352,4 @@ private _sendConnectionStatus( connectionStatus )
               ]
               
     sendEvent( map )
-}
-
-/**
- * _parseDescriptionAsMap()
- *
- * Converts a string of "key:value" separated by commas into a Map.
- */
-private _parseDescriptionAsMap( description )
-{
-    description.split(",").inject([:]) { map, param ->
-        def nameAndValue = param.split(":")
-        map += [(nameAndValue[0].trim()):nameAndValue[1].trim()]
-    }
-}
-
-
-/**
- * _generatePictureName()
- *
- * Builds a unique picture name for storing in S3.
- */
-private _generatePictureName()
-{
-    def pictureUuid = java.util.UUID.randomUUID().toString().replaceAll('-', '')
-    def picName = device.deviceNetworkId.replaceAll(':', '') + "_$pictureUuid" + ".jpg"
-    
-    return picName
 }

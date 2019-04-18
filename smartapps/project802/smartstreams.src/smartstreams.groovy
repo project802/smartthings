@@ -80,7 +80,8 @@ def initialize()
     subscribe( powerSources, "powerSource", handlePowerSourceEvent )
     subscribe( batteries, "battery", handleBatteryEvent )
     subscribe( voltageMeters, "voltage", handleVoltageEvent )
-    subscribe( buttons, "button", handleButtonEvent )
+    if( buttons )
+        subscribe( buttons, "button", handleButtonEvent )
 }
 
 def handleButtonEvent( evt )
@@ -170,7 +171,7 @@ private sendValue( evt )
     
     //log.debug "SmartStreams sending ${component}, ${evt.name} = ${evt.value} from ${hub_id}"
     
-    def url = "${api_uri}?hub_id=${hub_id}&loc_id=${loc_id}&dev_id=${dev_id}&api_key=${api_key}&component=${component}&${name}=${value}"
+	def url = "${api_uri}?hub_id=${hub_id}&loc_id=${loc_id}&dev_id=${dev_id}&api_key=${api_key}&component=${component}&${name}=${value}"
     //log.debug url
     
     def putParams = [
