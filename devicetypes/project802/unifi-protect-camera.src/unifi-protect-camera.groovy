@@ -148,7 +148,7 @@ def take()
  */
 def nvr_cameraTakeCallback( physicalgraph.device.HubResponse hubResponse )
 {
-    log.debug( "nvr_cameraTakeCallback: ${hubResponse.description}" )
+    //log.debug( "nvr_cameraTakeCallback: ${hubResponse.description}" )
     
     def descriptionMap = stringToMap( hubResponse.description )
     
