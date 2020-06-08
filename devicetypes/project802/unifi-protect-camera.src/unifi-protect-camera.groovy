@@ -277,7 +277,7 @@ def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
     }
     
     // Only do motion detection if the camera is connected and configured for it
-    if( (state.connectionStatus == "CONNECTED") && (data.recordingSettings?.mode == "motion") )
+    if( (state.connectionStatus == "CONNECTED") )
     {
     	// Motion is based on a new recording being present
     	if( state.lastMotion && (state.lastMotion != data.lastMotion) )
@@ -289,7 +289,7 @@ def nvr_cameraPollCallback( physicalgraph.device.HubResponse hubResponse )
     }
     else
     {
-        log.warn "nvr_cameraPollCallback: ${device.displayName} camera disconnected or motion not enabled"
+        log.warn "nvr_cameraPollCallback: ${device.displayName} camera disconnected"
     }
     
     // Fall-through takes care of case if camera motion was active but became disconnected before becoming inactive
