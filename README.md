@@ -4,10 +4,10 @@ This is a collection of device handlers, SmartApps and other things relating to 
 
 For Git Hub integration, see https://docs.smartthings.com/en/latest/tools-and-ide/github-integration.html
 
-## UniFi Protect
+## UniFi Protect (UNMAINTAINED)
 SmartApp and Device Type Handler for Ubiquiti UniFi Protect software/cameras.  See UniFi_Protect.md for more information.
 
-## UniFi NVR (DEPRECATED)
+## UniFi NVR (UNMAINTAINED)
 SmartApp and Device Type Handler for Ubiquiti UniFi NVR software/cameras.  See Unifi_NVR.md for more information.  Now deprecated since Ubiquiti has slowed NVR development to focus on Protect.
 
 ## SmartStreams
